@@ -19,8 +19,8 @@ function isWishlistListing(value: unknown): value is WishlistListing {
     (typeof value.category === "string" || value.category === null) &&
     "description" in value &&
     (typeof value.description === "string" || value.description === null) &&
-    "contactInfo" in value &&
-    typeof value.contactInfo === "string" &&
+    "canReceiveInquiries" in value &&
+    typeof value.canReceiveInquiries === "boolean" &&
     "createdAt" in value &&
     typeof value.createdAt === "string"
   );
@@ -56,10 +56,7 @@ export function CreateWishlistButton({
       const response = await fetch("/api/wishlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...payload,
-          contactIsPublic: formData.get("contactIsPublic") === "on",
-        }),
+        body: JSON.stringify(payload),
       });
       const result: unknown = await response.json();
 
@@ -171,25 +168,15 @@ export function CreateWishlistButton({
               placeholder="Например, интересует печатное издание в хорошем состоянии"
             />
           </label>
-          <label>
-            Контакт для связи
-            <input
-              name="contactInfo"
-              required
-              maxLength={160}
-              placeholder="Телефон или ссылка на мессенджер"
-            />
-          </label>
-          <label className="contact-consent">
-            <input name="contactIsPublic" type="checkbox" required />
-            <span>Я согласен(на), что мой контакт будет виден всем посетителям сайта вместе с заявкой.</span>
-          </label>
+          <p className="inquiry-privacy-note">
+            Контакт не публикуется. Читатели смогут отправить отклик, а ты ответишь им по email в личном кабинете.
+          </p>
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="form-submit" type="submit" disabled={isSaving}>
             {isSaving ? "Сохраняем…" : "Опубликовать заявку"}
             {!isSaving && <span aria-hidden="true">↗</span>}
           </button>
-          <p className="form-note">Заявка появится в открытом списке на сайте.</p>
+          <p className="form-note">Заявка появится в открытом списке сайта без личных контактов.</p>
         </form>
         )}
       </dialog>

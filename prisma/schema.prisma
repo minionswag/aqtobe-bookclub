@@ -14,17 +14,19 @@ enum DealType {
 }
 
 model User {
-  id               String            @id @default(cuid())
-  name             String?
-  email            String?           @unique
-  emailVerified    DateTime?
-  image            String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  books            Book[]
-  wishlistRequests WishlistRequest[]
-  accounts         Account[]
-  sessions         Session[]
+  id                   String            @id @default(cuid())
+  name                 String?
+  email                String?           @unique
+  emailVerified        DateTime?
+  image                String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  books                Book[]
+  sentContactInquiries ContactInquiry[]  @relation("InquirySender")
+  receivedInquiries    ContactInquiry[]  @relation("InquiryRecipient")
+  wishlistRequests     WishlistRequest[]
+  accounts             Account[]
+  sessions             Session[]
 }
 
 model Account {
@@ -62,7 +64,7 @@ model VerificationToken {
 }
 
 model Book {
-  id          String   @id @default(cuid())
+  id          String           @id @default(cuid())
   title       String
   author      String
   description String
@@ -71,22 +73,44 @@ model Book {
   dealType    DealType
   price       Float?
   district    String
-  contactInfo String
+  contactInfo String?
+  imageUrl    String?
+  isFound     Boolean          @default(false)
   userId      String?
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  user        User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  inquiries   ContactInquiry[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model ContactInquiry {
+  id                String           @id @default(cuid())
+  bookId            String?
+  wishlistRequestId String?
+  senderId          String
+  recipientId       String
+  message           String
+  createdAt         DateTime         @default(now())
+  book              Book?            @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  wishlistRequest   WishlistRequest? @relation(fields: [wishlistRequestId], references: [id], onDelete: Cascade)
+  sender            User             @relation("InquirySender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient         User             @relation("InquiryRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, createdAt])
+  @@index([senderId, createdAt])
+  @@map("BookInquiry")
 }
 
 model WishlistRequest {
-  id          String   @id @default(cuid())
+  id          String           @id @default(cuid())
   title       String
   author      String?
   category    String?
   description String?
-  contactInfo String
+  contactInfo String?
   userId      String?
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  user        User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  inquiries   ContactInquiry[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 }

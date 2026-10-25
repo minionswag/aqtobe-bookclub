@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import Image from "next/image";
 import { AccountButton } from "@/app/components/account-button";
 import { CreateBookButton } from "@/app/components/create-book-button";
 import { CreateWishlistButton } from "@/app/components/create-wishlist-button";
+import { ContactBookButton } from "@/app/components/contact-book-button";
 import type { BookListing, DealType as ListingDealType } from "@/lib/book-types";
 import type { WishlistListing } from "@/lib/wishlist-types";
 
@@ -48,7 +50,9 @@ function isBookListing(value: unknown): value is BookListing {
     typeof value.category === "string" &&
     typeof value.condition === "string" &&
     typeof value.district === "string" &&
-    typeof value.contactInfo === "string" &&
+    (typeof value.imageUrl === "string" || value.imageUrl === null) &&
+    typeof value.isFound === "boolean" &&
+    typeof value.canReceiveInquiries === "boolean" &&
     (value.dealType === "EXCHANGE" || value.dealType === "SALE" || value.dealType === "RENT") &&
     (typeof value.price === "number" || value.price === null)
   );
@@ -62,28 +66,9 @@ function isWishlistListing(value: unknown): value is WishlistListing {
     (typeof value.author === "string" || value.author === null) &&
     (typeof value.category === "string" || value.category === null) &&
     (typeof value.description === "string" || value.description === null) &&
-    typeof value.contactInfo === "string" &&
+    typeof value.canReceiveInquiries === "boolean" &&
     typeof value.createdAt === "string"
   );
-}
-
-function getContactHref(contactInfo: string): string | null {
-  const contact = contactInfo.trim();
-
-  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) {
-    return `mailto:${contact}`;
-  }
-
-  if (/^\+?[\d\s()-]{7,}$/.test(contact)) {
-    return `tel:${contact.replace(/[^\d+]/g, "")}`;
-  }
-
-  try {
-    const url = new URL(contact);
-    return url.protocol === "https:" ? url.toString() : null;
-  } catch {
-    return null;
-  }
 }
 
 function formatRequestDate(value: string): string {
@@ -132,17 +117,17 @@ function BookCard({
   book,
   isFavorite,
   onToggleFavorite,
+  googleConfigured,
 }: {
   book: Book;
   isFavorite: boolean;
   onToggleFavorite: (id: string) => void;
+  googleConfigured: boolean;
 }) {
-  const contactHref = getContactHref(book.contactInfo);
-
   return (
-    <article className="book-card">
+    <article className={`book-card${book.isFound ? " is-found" : ""}`}>
       <div
-        className="book-cover"
+        className={`book-cover${book.imageUrl ? " has-image" : ""}`}
         style={
           {
             "--cover": book.cover,
@@ -150,9 +135,22 @@ function BookCard({
           } as CSSProperties
         }
       >
-        <span className="cover-label">{book.label}</span>
-        <span className="cover-title">{book.initials}</span>
-        <span className="cover-author">{book.author}</span>
+        {book.imageUrl ? (
+          <Image
+            className="book-photo"
+            src={book.imageUrl}
+            alt={`Обложка книги «${book.title}»`}
+            fill
+            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 240px"
+          />
+        ) : (
+          <>
+            <span className="cover-label">{book.label}</span>
+            <span className="cover-title">{book.initials}</span>
+            <span className="cover-author">{book.author}</span>
+          </>
+        )}
+        {book.isFound && <span className="book-found-tag">Книгу нашли</span>}
         <button
           className={`favorite-button${isFavorite ? " favorite-active" : ""}`}
           type="button"
@@ -181,21 +179,15 @@ function BookCard({
               ? "Обмен на книгу"
               : `${book.price?.toLocaleString("ru-RU")} ₸`}
           </span>
-          {contactHref ? (
-            <a
-              className="details-link"
-              href={contactHref}
-              aria-label={`Связаться с владельцем книги «${book.title}»`}
-            >
-              Связаться <span aria-hidden="true">↗</span>
-            </a>
-          ) : (
-            <span className="details-link" title={book.contactInfo}>
-              Контакт в объявлении
-            </span>
-          )}
+          <ContactBookButton
+            targetId={book.id}
+            targetType="book"
+            targetTitle={book.title}
+            canReceiveInquiries={book.canReceiveInquiries && !book.isFound}
+            googleConfigured={googleConfigured}
+          />
         </div>
-        <p className="book-contact"><span>Связаться:</span> {book.contactInfo}</p>
+        <p className="book-contact">Напиши владельцу через защищённую форму — контакты не публикуются.</p>
       </div>
     </article>
   );
@@ -221,6 +213,9 @@ export default function Home({ googleConfigured }: { googleConfigured: boolean }
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("Все книги");
   const [activeDeal, setActiveDeal] = useState<(typeof dealFilters)[number]>("Все предложения");
+  const [activeDistrict, setActiveDistrict] = useState("");
+  const [minimumPrice, setMinimumPrice] = useState("");
+  const [maximumPrice, setMaximumPrice] = useState("");
   const [favorites, setFavorites] = useState<string[]>([]);
 
   useEffect(() => {
@@ -301,6 +296,8 @@ export default function Home({ googleConfigured }: { googleConfigured: boolean }
 
   const filteredBooks = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("ru");
+    const minimum = minimumPrice === "" ? null : Number(minimumPrice);
+    const maximum = maximumPrice === "" ? null : Number(maximumPrice);
 
     return books.filter((book) => {
       const matchesSearch =
@@ -311,10 +308,42 @@ export default function Home({ googleConfigured }: { googleConfigured: boolean }
       const matchesCategory =
         activeCategory === "Все книги" || book.category === activeCategory;
       const matchesDeal = activeDeal === "Все предложения" || book.dealType === activeDeal;
+      const matchesDistrict =
+        !activeDistrict || book.district.trim().toLocaleLowerCase("ru") === activeDistrict;
+      const matchesPrice =
+        (minimum === null && maximum === null) ||
+        (book.price !== null &&
+          (minimum === null || book.price >= minimum) &&
+          (maximum === null || book.price <= maximum));
 
-      return matchesSearch && matchesCategory && matchesDeal;
+      return matchesSearch && matchesCategory && matchesDeal && matchesDistrict && matchesPrice;
     });
-  }, [activeCategory, activeDeal, books, search]);
+  }, [activeCategory, activeDeal, activeDistrict, books, maximumPrice, minimumPrice, search]);
+
+  const districts = useMemo(
+    () =>
+      [...new Set(books.map((book) => book.district.trim()).filter(Boolean))].sort((left, right) =>
+        left.localeCompare(right, "ru"),
+      ),
+    [books],
+  );
+
+  const hasActiveFilters =
+    search.trim() !== "" ||
+    activeCategory !== "Все книги" ||
+    activeDeal !== "Все предложения" ||
+    activeDistrict !== "" ||
+    minimumPrice !== "" ||
+    maximumPrice !== "";
+
+  function resetFilters() {
+    setSearch("");
+    setActiveCategory("Все книги");
+    setActiveDeal("Все предложения");
+    setActiveDistrict("");
+    setMinimumPrice("");
+    setMaximumPrice("");
+  }
 
   function toggleFavorite(bookId: string) {
     setFavorites((current) =>
@@ -454,6 +483,60 @@ export default function Home({ googleConfigured }: { googleConfigured: boolean }
           </label>
         </div>
 
+        <div className="catalog-extra-filters">
+          <label className="district-filter">
+            <span>Район:</span>
+            <select
+              value={activeDistrict}
+              onChange={(event) => setActiveDistrict(event.target.value)}
+              aria-label="Фильтр по району"
+            >
+              <option value="">Все районы</option>
+              {districts.map((district) => (
+                <option key={district} value={district.toLocaleLowerCase("ru")}>
+                  {district}
+                </option>
+              ))}
+            </select>
+          </label>
+          <fieldset className="price-filter">
+            <legend>Цена, ₸:</legend>
+            <label>
+              <span className="visually-hidden">Цена от</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                placeholder="от"
+                value={minimumPrice}
+                onChange={(event) => setMinimumPrice(event.target.value)}
+                aria-label="Минимальная цена в тенге"
+              />
+            </label>
+            <span aria-hidden="true">—</span>
+            <label>
+              <span className="visually-hidden">Цена до</span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                placeholder="до"
+                value={maximumPrice}
+                onChange={(event) => setMaximumPrice(event.target.value)}
+                aria-label="Максимальная цена в тенге"
+              />
+            </label>
+            <span className="price-filter-note">Обмен без цены не включается</span>
+          </fieldset>
+          {hasActiveFilters && (
+            <button className="filter-reset-button" onClick={resetFilters} type="button">
+              Сбросить фильтры
+            </button>
+          )}
+        </div>
+
         <div className="catalog-count" aria-live="polite">
           <span>СВЕЖИЕ НАХОДКИ</span>
           <span>{filteredBooks.length.toString().padStart(2, "0")} {formatBookCount(filteredBooks.length)}</span>
@@ -481,6 +564,7 @@ export default function Home({ googleConfigured }: { googleConfigured: boolean }
               <BookCard
                 book={book}
                 isFavorite={favorites.includes(book.id)}
+                googleConfigured={googleConfigured}
                 key={book.id}
                 onToggleFavorite={toggleFavorite}
               />
@@ -498,14 +582,10 @@ export default function Home({ googleConfigured }: { googleConfigured: boolean }
               <>
                 <span aria-hidden="true">⌕</span>
                 <h3>Пока ничего не нашли</h3>
-                <p>Попробуй изменить запрос или выбрать другую категорию.</p>
+                <p>Попробуй изменить параметры поиска или сбросить фильтры.</p>
                 <button
                   className="text-button"
-                  onClick={() => {
-                    setSearch("");
-                    setActiveCategory("Все книги");
-                    setActiveDeal("Все предложения");
-                  }}
+                  onClick={resetFilters}
                   type="button"
                 >
                   Сбросить фильтры
@@ -547,34 +627,32 @@ export default function Home({ googleConfigured }: { googleConfigured: boolean }
           <div className="wishlist-message" role="status">Загружаем заявки…</div>
         ) : wishlistRequests.length > 0 ? (
           <div className="wishlist-grid">
-            {wishlistRequests.map((request) => {
-              const contactHref = getContactHref(request.contactInfo);
-
-              return (
-                <article className="wishlist-card" key={request.id}>
-                  <div className="wishlist-card-top">
-                    <span className="wishlist-symbol" aria-hidden="true">“</span>
-                    <time dateTime={request.createdAt}>{formatRequestDate(request.createdAt)}</time>
-                  </div>
-                  <p className="wishlist-card-kicker">ИЩУ КНИГУ</p>
-                  <h3>{request.title}</h3>
-                  {(request.author || request.category) && (
-                    <p className="wishlist-card-details">
-                      {[request.author, request.category].filter(Boolean).join(" · ")}
-                    </p>
-                  )}
-                  {request.description && <p className="wishlist-card-description">{request.description}</p>}
-                  <div className="wishlist-card-contact">
-                    <span>Её ищет читатель</span>
-                    {contactHref ? (
-                      <a href={contactHref}>Откликнуться <span aria-hidden="true">↗</span></a>
-                    ) : (
-                      <span className="wishlist-contact-plain">{request.contactInfo}</span>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
+            {wishlistRequests.map((request) => (
+              <article className="wishlist-card" key={request.id}>
+                <div className="wishlist-card-top">
+                  <span className="wishlist-symbol" aria-hidden="true">“</span>
+                  <time dateTime={request.createdAt}>{formatRequestDate(request.createdAt)}</time>
+                </div>
+                <p className="wishlist-card-kicker">ИЩУ КНИГУ</p>
+                <h3>{request.title}</h3>
+                {(request.author || request.category) && (
+                  <p className="wishlist-card-details">
+                    {[request.author, request.category].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+                {request.description && <p className="wishlist-card-description">{request.description}</p>}
+                <div className="wishlist-card-contact">
+                  <span>Её ищет читатель</span>
+                  <ContactBookButton
+                    targetId={request.id}
+                    targetType="wishlist"
+                    targetTitle={request.title}
+                    canReceiveInquiries={request.canReceiveInquiries}
+                    googleConfigured={googleConfigured}
+                  />
+                </div>
+              </article>
+            ))}
           </div>
         ) : (
           <div className="wishlist-empty">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { GoogleSignInButton } from "@/app/components/google-sign-in-button";
 import type { BookListing, DealType } from "@/lib/book-types";
@@ -29,12 +30,16 @@ function isBookListing(value: unknown): value is BookListing {
     typeof value.condition === "string" &&
     "district" in value &&
     typeof value.district === "string" &&
-    "contactInfo" in value &&
-    typeof value.contactInfo === "string" &&
     "dealType" in value &&
     (value.dealType === "EXCHANGE" || value.dealType === "SALE" || value.dealType === "RENT") &&
     "price" in value &&
-    (typeof value.price === "number" || value.price === null)
+    (typeof value.price === "number" || value.price === null) &&
+    "imageUrl" in value &&
+    (typeof value.imageUrl === "string" || value.imageUrl === null) &&
+    "isFound" in value &&
+    typeof value.isFound === "boolean" &&
+    "canReceiveInquiries" in value &&
+    typeof value.canReceiveInquiries === "boolean"
   );
 }
 
@@ -49,12 +54,28 @@ export function CreateBookButton({
   const [dealType, setDealType] = useState<DealType>("EXCHANGE");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState("");
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const imagePreviewUrlRef = useRef<string | null>(null);
   const { data: session, status } = useSession();
 
   useEffect(() => {
     if (isOpen) dialogRef.current?.showModal();
   }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrlRef.current) URL.revokeObjectURL(imagePreviewUrlRef.current);
+    };
+  }, []);
+
+  function updateImagePreview(file: File | null) {
+    if (imagePreviewUrlRef.current) URL.revokeObjectURL(imagePreviewUrlRef.current);
+    imagePreviewUrlRef.current = file ? URL.createObjectURL(file) : null;
+    setImagePreviewUrl(imagePreviewUrlRef.current ?? "");
+    setSelectedImage(file);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,13 +84,12 @@ export function CreateBookButton({
 
     const formElement = event.currentTarget;
     const formData = new FormData(formElement);
-    const payload = Object.fromEntries(formData.entries());
+    formData.set("dealType", dealType);
 
     try {
       const response = await fetch("/api/books", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payload, dealType }),
+        body: formData,
       });
       const result: unknown = await response.json();
 
@@ -88,6 +108,7 @@ export function CreateBookButton({
       onCreated(result);
       dialogRef.current?.close();
       setDealType("EXCHANGE");
+      updateImagePreview(null);
       formElement.reset();
     } catch {
       setError("Не удалось связаться с сервером. Проверьте соединение и попробуйте снова.");
@@ -228,20 +249,49 @@ export function CreateBookButton({
                 )}
               </div>
               <label>
-                Контакт для связи
+                <span>Фотография книги <span className="optional-field">(необязательно)</span></span>
                 <input
-                  name="contactInfo"
-                  required
-                  maxLength={160}
-                  placeholder="Телефон или ссылка на мессенджер"
+                  className="book-image-input"
+                  name="image"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    if (file && file.size > 5 * 1024 * 1024) {
+                      updateImagePreview(null);
+                      setError("Размер изображения не должен превышать 5 МБ.");
+                      event.target.value = "";
+                      return;
+                    }
+                    if (file && !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+                      updateImagePreview(null);
+                      setError("Выберите изображение JPG, PNG или WebP.");
+                      event.target.value = "";
+                      return;
+                    }
+                    setError("");
+                    updateImagePreview(file);
+                  }}
                 />
               </label>
+              {imagePreviewUrl && (
+                <div className="book-image-preview">
+                  <Image
+                    src={imagePreviewUrl}
+                    alt="Предпросмотр фотографии книги"
+                    width={160}
+                    height={120}
+                    unoptimized
+                  />
+                  <span>{selectedImage?.name}</span>
+                </div>
+              )}
               {error && <p className="form-error" role="alert">{error}</p>}
               <button className="form-submit" type="submit" disabled={isSaving}>
                 {isSaving ? "Сохраняем…" : "Опубликовать книгу"}
                 {!isSaving && <span aria-hidden="true">↗</span>}
               </button>
-              <p className="form-note">Контакт будет виден посетителям каталога.</p>
+              <p className="form-note">Контакты не публикуются. Читатели смогут отправить отклик через сайт.</p>
             </form>
             )}
       </dialog>

@@ -585,6 +585,87 @@ button {
   font-size: 9px;
 }
 
+.catalog-extra-filters {
+  display: flex;
+  min-height: 60px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px 22px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  color: #898b81;
+  font-size: 9px;
+}
+
+.district-filter,
+.price-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.district-filter select,
+.price-filter input {
+  min-height: 34px;
+  padding: 7px 9px;
+  border: 1px solid #dedbd1;
+  border-radius: 2px;
+  outline-color: #9da793;
+  background: #fffefa;
+  color: var(--green-dark);
+  font-size: 10px;
+}
+
+.district-filter select {
+  min-width: 135px;
+}
+
+.price-filter {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.price-filter legend {
+  float: left;
+  margin-right: 8px;
+}
+
+.price-filter input {
+  width: 82px;
+}
+
+.price-filter-note {
+  color: #9a9b90;
+  font-size: 8px;
+}
+
+.filter-reset-button {
+  padding: 7px 9px;
+  border: 1px solid #dedbd1;
+  border-radius: 2px;
+  background: transparent;
+  color: var(--green);
+  cursor: pointer;
+  font-size: 9px;
+}
+
+.filter-reset-button:hover {
+  border-color: var(--green);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
 .catalog-count {
   display: flex;
   justify-content: space-between;
@@ -650,6 +731,16 @@ button {
   transform: scaleY(0.68);
 }
 
+.book-cover.has-image::before,
+.book-cover.has-image::after {
+  display: none;
+}
+
+.book-photo {
+  z-index: 0;
+  object-fit: cover;
+}
+
 .cover-label {
   z-index: 1;
   position: absolute;
@@ -676,6 +767,34 @@ button {
   font-size: 7px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.book-image-input {
+  max-width: 100%;
+  padding: 10px;
+  font-size: 12px;
+}
+
+.book-image-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.book-image-preview img {
+  width: 80px;
+  height: 60px;
+  border-radius: 5px;
+  object-fit: cover;
+}
+
+.optional-field {
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 400;
 }
 
 .favorite-button {
@@ -723,6 +842,22 @@ button {
   background: rgba(251, 250, 246, 0.92);
   color: var(--green-dark);
   font-size: 8px;
+}
+
+.book-found-tag {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  left: 10px;
+  padding: 6px 9px;
+  border-radius: 2px;
+  background: rgba(251, 250, 246, 0.94);
+  color: var(--green-dark);
+  font-size: 8px;
+}
+
+.book-card.is-found {
+  opacity: 0.8;
 }
 
 .deal-sale {
@@ -802,6 +937,13 @@ button {
 
 .details-link:hover {
   color: var(--rust);
+}
+
+.inquiry-trigger {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
 .details-link span {
@@ -1507,8 +1649,104 @@ button {
   font-size: 9px;
 }
 
+.account-list-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.book-status-control {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.book-status-button {
+  padding: 7px 9px;
+  border: 1px solid #d8d8ca;
+  border-radius: 2px;
+  background: #f8f7f0;
+  color: var(--green);
+  cursor: pointer;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.book-status-button:hover:not(:disabled) {
+  border-color: var(--green);
+}
+
+.book-status-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .account-empty {
   padding: 13px 0;
+}
+
+.account-inquiry-list {
+  display: grid;
+}
+
+.account-inquiry {
+  padding: 16px 0;
+  border-bottom: 1px solid #efede6;
+}
+
+.account-inquiry-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.account-inquiry-heading h3 {
+  margin: 0;
+  color: var(--green-dark);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.account-inquiry-heading time,
+.account-inquiry-sender {
+  color: #85877c;
+  font-size: 9px;
+}
+
+.account-inquiry-message {
+  margin: 10px 0 0;
+  color: #55594f;
+  font-size: 11px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.account-inquiry-sender {
+  margin: 9px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.account-inquiry-sender a {
+  color: var(--green);
+}
+
+.inquiry-privacy-note {
+  margin: 0;
+  color: #777b70;
+  font-size: 10px;
+  line-height: 1.65;
+}
+
+.inquiry-success p {
+  margin: 0 0 16px;
+  color: #55594f;
+  font-size: 11px;
+  line-height: 1.7;
 }
 
 .account-create-link {
@@ -1706,12 +1944,11 @@ button {
 }
 
 .book-contact {
-  overflow: hidden;
   margin: 8px 0 0;
   color: #777b70;
   font-size: 8px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 
 .book-contact span {
@@ -1993,6 +2230,20 @@ button {
     flex-direction: column;
     gap: 5px;
     padding: 12px 0;
+  }
+
+  .catalog-extra-filters {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .price-filter {
+    flex-wrap: wrap;
+  }
+
+  .price-filter-note {
+    flex-basis: 100%;
+    margin-left: 48px;
   }
 
   .category-filters {

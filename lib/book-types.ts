@@ -10,5 +10,7 @@ export type BookListing = {
   dealType: DealType;
   price: number | null;
   district: string;
-  contactInfo: string;
+  imageUrl: string | null;
+  isFound: boolean;
+  canReceiveInquiries: boolean;
 };

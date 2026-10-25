@@ -4,6 +4,6 @@ export type WishlistListing = {
   author: string | null;
   category: string | null;
   description: string | null;
-  contactInfo: string;
+  canReceiveInquiries: boolean;
   createdAt: string;
 };

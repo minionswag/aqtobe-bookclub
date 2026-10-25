@@ -1,81 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { validateWishlistInput } from "@/lib/wishlist-validation";
 
 export const runtime = "nodejs";
-
-type WishlistInput = {
-  title: string;
-  author: string | null;
-  category: string | null;
-  description: string | null;
-  contactInfo: string;
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function getOptionalText(
-  value: unknown,
-  field: string,
-  label: string,
-  maxLength: number,
-  errors: Record<string, string>,
-): string | null {
-  if (value === undefined || value === null || value === "") return null;
-  if (typeof value !== "string") {
-    errors[field] = `Проверьте поле «${label}».`;
-    return null;
-  }
-
-  const text = value.trim();
-  if (text.length > maxLength) {
-    errors[field] = `Сократите поле «${label}» до ${maxLength} символов.`;
-    return null;
-  }
-
-  return text || null;
-}
-
-function validateWishlistInput(value: unknown): {
-  data?: WishlistInput;
-  errors?: Record<string, string>;
-} {
-  if (!isRecord(value)) {
-    return { errors: { form: "Проверьте данные заявки." } };
-  }
-
-  const errors: Record<string, string> = {};
-  const title = typeof value.title === "string" ? value.title.trim() : "";
-  const contactInfo = typeof value.contactInfo === "string" ? value.contactInfo.trim() : "";
-
-  if (!title) errors.title = "Напишите название книги, которую ищете.";
-  else if (title.length > 160) errors.title = "Сократите название до 160 символов.";
-
-  if (!contactInfo) errors.contactInfo = "Укажите контакт для связи.";
-  else if (contactInfo.length > 160) errors.contactInfo = "Сократите контакт до 160 символов.";
-
-  if (value.contactIsPublic !== true) {
-    errors.contactIsPublic = "Подтвердите, что контакт будет опубликован в заявке.";
-  }
-
-  const author = getOptionalText(value.author, "author", "Автора", 120, errors);
-  const category = getOptionalText(value.category, "category", "Категорию", 80, errors);
-  const description = getOptionalText(value.description, "description", "Описание", 800, errors);
-
-  if (Object.keys(errors).length > 0) return { errors };
-
-  return {
-    data: {
-      title,
-      author,
-      category,
-      description,
-      contactInfo,
-    },
-  };
-}
 
 export async function GET() {
   try {
@@ -87,12 +15,17 @@ export async function GET() {
         author: true,
         category: true,
         description: true,
-        contactInfo: true,
+        userId: true,
         createdAt: true,
       },
     });
 
-    return NextResponse.json(requests);
+    return NextResponse.json(
+      requests.map(({ userId, ...request }) => ({
+        ...request,
+        canReceiveInquiries: userId !== null,
+      })),
+    );
   } catch (error) {
     console.error("Failed to load wishlist requests:", error);
     return NextResponse.json(
@@ -110,7 +43,6 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
-
   let body: unknown;
 
   try {
@@ -133,9 +65,22 @@ export async function POST(request: Request) {
 
   try {
     const wishlistRequest = await prisma.wishlistRequest.create({
-      data: { ...result.data, userId: session.user.id },
+      data: { ...result.data, contactInfo: null, userId: session.user.id },
+      select: {
+        id: true,
+        title: true,
+        author: true,
+        category: true,
+        description: true,
+        userId: true,
+        createdAt: true,
+      },
     });
-    return NextResponse.json(wishlistRequest, { status: 201 });
+    const { userId, ...publicRequest } = wishlistRequest;
+    return NextResponse.json(
+      { ...publicRequest, canReceiveInquiries: userId !== null },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Failed to create wishlist request:", error);
     return NextResponse.json(

@@ -25,9 +25,25 @@ or `npm run db:studio` to open Prisma Studio.
 The database schema is in [`prisma/schema.prisma`](./prisma/schema.prisma).
 The book catalog is stored in the local `prisma/dev.db` SQLite database.
 
-Visitors can publish a book listing or post a book-wishlist request from the
-homepage. Wishlist requests are shown publicly with the submitter's contact
-information; the form asks for consent before publishing it.
+Signed-in visitors can publish a book listing or post a book-wishlist request
+from the homepage.
+
+Book owners can mark their listings as found from the account page. Found books
+remain visible in the catalog with a status label, but cannot receive new
+inquiries until the owner returns them to the catalog.
+
+Members can edit their own book listings (including replacing or removing a
+photo) and wishlist requests from the account page.
+
+Book photos are optional. JPG, PNG, and WebP images up to 5 MB are stored in
+`public/uploads` for local development; that folder is ignored by Git. Local
+uploads are not persistent storage for a future hosted deployment, which will
+need an external image-storage service.
+
+Contact details are not requested for new listings or wishlist requests.
+Signed-in readers can send a private inquiry, and the author can reply using
+the sender email shown only in their account inbox. Legacy contact details
+remain stored locally but are not included in public API responses.
 
 ## Google sign-in
 
