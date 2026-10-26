@@ -142,6 +142,7 @@ function BookCard({
             alt={`Обложка книги «${book.title}»`}
             fill
             sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 240px"
+            unoptimized={book.imageUrl.startsWith("https://")}
           />
         ) : (
           <>

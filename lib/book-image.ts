@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { databaseProvider } from "@/lib/prisma";
+import { removeBookImageFromSupabase, uploadBookImageToSupabase } from "@/lib/supabase-storage";
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const UPLOAD_DIRECTORY = path.join(process.cwd(), "public", "uploads");
@@ -46,15 +48,26 @@ export async function saveBookImage(value: FormDataEntryValue | null): Promise<s
     throw new BookImageError("Поддерживаются только корректные изображения JPG, PNG и WebP.");
   }
 
-  await mkdir(UPLOAD_DIRECTORY, { recursive: true });
   const fileName = `${randomUUID()}.${imageType.extension}`;
-  await writeFile(path.join(UPLOAD_DIRECTORY, fileName), bytes, { flag: "wx" });
 
+  if (databaseProvider === "postgres") {
+    return uploadBookImageToSupabase(fileName, bytes, imageType.mimeType);
+  }
+
+  await mkdir(UPLOAD_DIRECTORY, { recursive: true });
+  await writeFile(path.join(UPLOAD_DIRECTORY, fileName), bytes, { flag: "wx" });
   return `/uploads/${fileName}`;
 }
 
 export async function removeBookImage(imageUrl: string | null): Promise<void> {
-  if (!imageUrl?.startsWith("/uploads/")) return;
+  if (!imageUrl) return;
+
+  if (imageUrl.startsWith("https://")) {
+    await removeBookImageFromSupabase(imageUrl);
+    return;
+  }
+
+  if (!imageUrl.startsWith("/uploads/")) return;
 
   const fileName = imageUrl.slice("/uploads/".length);
   if (!/^[\da-f-]+\.(?:jpg|png|webp)$/i.test(fileName)) return;

@@ -1,4 +1,4 @@
-import { DealType } from "@prisma/client";
+import { DealType } from "@aqtobe/prisma-sqlite";
 
 const requiredFields = [
   "title",

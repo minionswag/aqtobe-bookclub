@@ -1735,6 +1735,141 @@ button {
   color: var(--green);
 }
 
+.account-chat-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.inquiry-unread-badge {
+  display: inline-grid;
+  min-width: 23px;
+  height: 23px;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--rust);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.inquiry-unread-error {
+  margin-bottom: 12px;
+}
+
+.conversation-dialog {
+  display: none;
+  flex-direction: column;
+  width: min(100% - 32px, 620px);
+  height: min(760px, 88vh);
+  max-height: 88vh;
+  overflow: hidden;
+}
+
+.conversation-dialog .eyebrow {
+  margin: 0;
+}
+
+.conversation-dialog h2 {
+  margin-bottom: 0;
+  padding-right: 26px;
+  font-size: 30px;
+}
+
+.conversation-participant {
+  margin: 7px 0 16px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.conversation-messages {
+  display: flex;
+  min-height: 130px;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding: 15px 12px;
+  border: 1px solid var(--line);
+  background: #f4f2eb;
+}
+
+.conversation-state {
+  margin: auto;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.conversation-message {
+  max-width: 84%;
+  align-self: flex-start;
+  padding: 10px 12px;
+  border: 1px solid #e7e2d7;
+  background: var(--paper);
+}
+
+.conversation-message-mine {
+  align-self: flex-end;
+  border-color: #dce4dc;
+  background: #eaf0e9;
+}
+
+.conversation-message-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--green);
+  font-size: 9px;
+}
+
+.conversation-message-heading time {
+  flex: none;
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.conversation-message p {
+  margin: 6px 0 0;
+  color: #454b42;
+  font-size: 11px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.conversation-compose {
+  display: grid;
+  gap: 9px;
+  padding-top: 12px;
+}
+
+.conversation-compose textarea {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+  padding: 11px;
+  border: 1px solid var(--line);
+  background: #fffefa;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 11px;
+  outline-color: var(--green);
+}
+
+.conversation-compose .form-submit {
+  justify-self: end;
+}
+
+.conversation-refresh-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  text-align: right;
+}
+
 .inquiry-privacy-note {
   margin: 0;
   color: #777b70;
@@ -1810,6 +1945,10 @@ button {
 
 .listing-dialog[open] {
   display: block;
+}
+
+.listing-dialog.conversation-dialog[open] {
+  display: flex;
 }
 
 .listing-dialog::backdrop {
@@ -1976,6 +2115,15 @@ button {
     inset: auto 0 0;
     margin: 0;
     padding: 31px 22px 25px;
+  }
+
+  .conversation-dialog {
+    width: min(100% - 32px, 620px);
+    max-width: 620px;
+    max-height: 88vh;
+    inset: 0;
+    margin: auto;
+    padding: 35px 40px;
   }
 
   .listing-dialog h2 {

@@ -4,12 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run db:generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:generate": "prisma generate --schema prisma/schema.local.prisma && prisma generate --schema prisma/schema.prisma",
+    "db:push": "prisma db push --schema prisma/schema.local.prisma",
+    "db:push:production": "node scripts/push-production-schema.mjs",
+    "db:migrate:supabase": "node scripts/migrate-local-to-supabase.mjs",
+    "db:studio": "prisma studio --schema prisma/schema.local.prisma"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

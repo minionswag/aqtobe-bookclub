@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@aqtobe/prisma-sqlite"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum DealType {
+  EXCHANGE
+  SALE
+  RENT
+}
+
+model User {
+  id                   String            @id @default(cuid())
+  name                 String?
+  email                String?           @unique
+  emailVerified        DateTime?
+  image                String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  books                Book[]
+  sentContactInquiries ContactInquiry[]  @relation("InquirySender")
+  receivedInquiries    ContactInquiry[]  @relation("InquiryRecipient")
+  sentInquiryMessages  InquiryMessage[]
+  inquiryReadStates    InquiryReadState[]
+  wishlistRequests     WishlistRequest[]
+  accounts             Account[]
+  sessions             Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Book {
+  id          String           @id @default(cuid())
+  title       String
+  author      String
+  description String
+  category    String
+  condition   String
+  dealType    DealType
+  price       Float?
+  district    String
+  contactInfo String?
+  imageUrl    String?
+  isFound     Boolean          @default(false)
+  userId      String?
+  user        User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  inquiries   ContactInquiry[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model ContactInquiry {
+  id                String           @id @default(cuid())
+  bookId            String?
+  wishlistRequestId String?
+  senderId          String
+  recipientId       String
+  message           String
+  createdAt         DateTime         @default(now())
+  book              Book?            @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  wishlistRequest   WishlistRequest? @relation(fields: [wishlistRequestId], references: [id], onDelete: Cascade)
+  sender            User             @relation("InquirySender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient         User             @relation("InquiryRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  messages          InquiryMessage[]
+  readStates        InquiryReadState[]
+
+  @@index([recipientId, createdAt])
+  @@index([senderId, createdAt])
+  @@map("BookInquiry")
+}
+
+model InquiryMessage {
+  id        String         @id @default(cuid())
+  inquiryId String
+  authorId  String
+  content   String
+  createdAt DateTime       @default(now())
+  inquiry   ContactInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  author    User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([inquiryId, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model InquiryReadState {
+  id         String         @id @default(cuid())
+  inquiryId  String
+  userId     String
+  lastReadAt DateTime       @default(now())
+  inquiry    ContactInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([inquiryId, userId])
+  @@index([userId, lastReadAt])
+}
+
+model WishlistRequest {
+  id          String           @id @default(cuid())
+  title       String
+  author      String?
+  category    String?
+  description String?
+  contactInfo String?
+  userId      String?
+  user        User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  inquiries   ContactInquiry[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}

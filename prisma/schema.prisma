@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -24,6 +24,8 @@ model User {
   books                Book[]
   sentContactInquiries ContactInquiry[]  @relation("InquirySender")
   receivedInquiries    ContactInquiry[]  @relation("InquiryRecipient")
+  sentInquiryMessages  InquiryMessage[]
+  inquiryReadStates    InquiryReadState[]
   wishlistRequests     WishlistRequest[]
   accounts             Account[]
   sessions             Session[]
@@ -95,10 +97,37 @@ model ContactInquiry {
   wishlistRequest   WishlistRequest? @relation(fields: [wishlistRequestId], references: [id], onDelete: Cascade)
   sender            User             @relation("InquirySender", fields: [senderId], references: [id], onDelete: Cascade)
   recipient         User             @relation("InquiryRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  messages          InquiryMessage[]
+  readStates        InquiryReadState[]
 
   @@index([recipientId, createdAt])
   @@index([senderId, createdAt])
   @@map("BookInquiry")
+}
+
+model InquiryMessage {
+  id        String         @id @default(cuid())
+  inquiryId String
+  authorId  String
+  content   String
+  createdAt DateTime       @default(now())
+  inquiry   ContactInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  author    User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([inquiryId, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model InquiryReadState {
+  id         String         @id @default(cuid())
+  inquiryId  String
+  userId     String
+  lastReadAt DateTime       @default(now())
+  inquiry    ContactInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([inquiryId, userId])
+  @@index([userId, lastReadAt])
 }
 
 model WishlistRequest {

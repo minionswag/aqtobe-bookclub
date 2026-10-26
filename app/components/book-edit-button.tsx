@@ -171,7 +171,13 @@ export function BookEditButton({ book }: { book: EditableBook }) {
           </div>
           {book.imageUrl && !removeImage && (
             <div className="book-image-preview">
-              <Image src={book.imageUrl} alt={`Текущее фото книги «${book.title}»`} width={160} height={120} />
+              <Image
+                src={book.imageUrl}
+                alt={`Текущее фото книги «${book.title}»`}
+                width={160}
+                height={120}
+                unoptimized={book.imageUrl.startsWith("https://")}
+              />
               <button className="text-button" type="button" onClick={() => setRemoveImage(true)}>
                 Удалить фото
               </button>
