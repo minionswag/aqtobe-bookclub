@@ -89,15 +89,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Нельзя отправить отклик на свою публикацию." }, { status: 400 });
     }
 
-    await prisma.contactInquiry.create({
-      data: {
-        bookId: targetType === "book" ? targetId : null,
-        wishlistRequestId: targetType === "wishlist" ? targetId : null,
-        senderId: session.user.id,
-        recipientId,
-        message,
-      },
-    });
+    await prisma.$transaction([
+      prisma.contactInquiry.create({
+        data: {
+          bookId: targetType === "book" ? targetId : null,
+          wishlistRequestId: targetType === "wishlist" ? targetId : null,
+          senderId: session.user.id,
+          recipientId,
+          message,
+        },
+      }),
+      prisma.notification.create({
+        data: {
+          userId: recipientId,
+          type: "inquiry",
+          title: "Новый отклик",
+          message: `${session.user.name || "Читатель"} откликнулся на вашу публикацию.`,
+          href: "/account",
+        },
+      }),
+    ]);
 
     return NextResponse.json({ sent: true }, { status: 201 });
   } catch (error) {

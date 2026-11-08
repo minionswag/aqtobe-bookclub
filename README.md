@@ -49,6 +49,10 @@ sender email is shown only to the listing author as an optional alternative
 contact. Legacy contact details remain stored locally but are not included in
 public API responses.
 
+Members can save books to server-backed favorites from the catalog and edit
+their display name, city, and short bio in the account page. New inquiries and
+chat messages create in-app notifications visible from the account page.
+
 ## Google sign-in
 
 Add `AUTH_SECRET`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` to `.env`.

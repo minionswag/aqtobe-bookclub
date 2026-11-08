@@ -8,6 +8,8 @@ import { WishlistEditButton } from "@/app/components/wishlist-edit-button";
 import { InquiryConversationButton } from "@/app/components/inquiry-conversation-button";
 import { InquiryUnreadProvider } from "@/app/components/inquiry-unread-provider";
 import { prisma } from "@/lib/prisma";
+import { ProfileForm } from "@/app/components/profile-form";
+import { NotificationsPanel } from "@/app/components/notifications-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,7 @@ export default async function AccountPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const [books, wishlistRequests, receivedInquiries, sentInquiries] = await Promise.all([
+  const [books, wishlistRequests, receivedInquiries, sentInquiries, profile] = await Promise.all([
     prisma.book.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -72,6 +74,10 @@ export default async function AccountPage() {
         recipient: { select: { name: true } },
       },
     }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { name: true, bio: true, city: true },
+    }),
   ]);
 
   return (
@@ -88,6 +94,17 @@ export default async function AccountPage() {
         <h1>Привет, <em>{session.user.name || "читатель"}!</em></h1>
         {session.user.email && <p className="account-email">{session.user.email}</p>}
         <p className="account-intro">Здесь собраны твои объявления и заявки сообщества.</p>
+        <NotificationsPanel />
+        <Link className="account-create-link" href={`/profile/${session.user.id}`}>Открыть публичный профиль <span aria-hidden="true">↗</span></Link>
+        <Link className="account-create-link" href="/favorites">Открыть избранное <span aria-hidden="true">♡</span></Link>
+        <section className="account-list-section">
+          <div className="account-list-heading"><h2>Мой профиль</h2></div>
+          <ProfileForm
+            initialName={profile?.name || session.user.name || ""}
+            initialBio={profile?.bio || ""}
+            initialCity={profile?.city || ""}
+          />
+        </section>
 
         <InquiryUnreadProvider
           inquiryIds={[...receivedInquiries, ...sentInquiries].map((inquiry) => inquiry.id)}

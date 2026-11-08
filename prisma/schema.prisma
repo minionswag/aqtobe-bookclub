@@ -29,6 +29,10 @@ model User {
   wishlistRequests     WishlistRequest[]
   accounts             Account[]
   sessions             Session[]
+  favorites            Favorite[]
+  notifications        Notification[]
+  bio                  String?
+  city                 String?
 }
 
 model Account {
@@ -83,6 +87,33 @@ model Book {
   inquiries   ContactInquiry[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+  favorites   Favorite[]
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  bookId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([userId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
 }
 
 model ContactInquiry {

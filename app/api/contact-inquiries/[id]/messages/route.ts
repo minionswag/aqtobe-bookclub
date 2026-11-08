@@ -131,20 +131,28 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Переписка не найдена." }, { status: 404 });
     }
 
-    const message = await prisma.inquiryMessage.create({
-      data: {
-        inquiryId: id,
-        authorId: session.user.id,
-        content,
-      },
-      select: {
-        id: true,
-        authorId: true,
-        content: true,
-        createdAt: true,
-        author: { select: { name: true } },
-      },
-    });
+    const recipientId = inquiry.senderId === session.user.id ? inquiry.recipientId : inquiry.senderId;
+    const [message] = await prisma.$transaction([
+      prisma.inquiryMessage.create({
+        data: { inquiryId: id, authorId: session.user.id, content },
+        select: {
+          id: true,
+          authorId: true,
+          content: true,
+          createdAt: true,
+          author: { select: { name: true } },
+        },
+      }),
+      prisma.notification.create({
+        data: {
+          userId: recipientId,
+          type: "message",
+          title: "Новое сообщение",
+          message: `${session.user.name || "Читатель"} отправил новое сообщение.`,
+          href: "/account",
+        },
+      }),
+    ]);
 
     return NextResponse.json(
       {
